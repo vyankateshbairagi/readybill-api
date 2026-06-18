@@ -41,9 +41,15 @@ export class AuthService {
     async login(dto: LoginDto) {
         const user = await this.usersService.findByMobile(dto.mobile);
 
+        console.log('LOGIN DTO =>', dto);
+        console.log('USER FROM DB =>', user);
+
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
+
+        console.log('DTO PASSWORD =>', dto.password);
+        console.log('DB PASSWORD =>', user.password);
 
         const valid = await bcrypt.compare(
             dto.password,
