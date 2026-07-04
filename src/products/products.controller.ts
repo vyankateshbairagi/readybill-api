@@ -1,25 +1,29 @@
 import {
-  Body,
   Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
   Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 @Controller('products')
-//@UseGuards(JwtAuthGuard)
 export class ProductsController {
   constructor(
     private readonly productsService: ProductsService,
-  ) {}
+  ) { }
 
   @Post()
   create(@Body() dto: CreateProductDto) {
@@ -27,7 +31,9 @@ export class ProductsController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Req() req) {
+    console.log('REQ USER =>', req.user);
+
     return this.productsService.findAll();
   }
 

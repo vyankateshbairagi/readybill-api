@@ -27,12 +27,11 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-@ApiBearerAuth()
+@ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
 @Get('profile')
 profile(@Req() req) {
   console.log('REQ USER =>', req.user);
-
   return req.user;
 }
 }

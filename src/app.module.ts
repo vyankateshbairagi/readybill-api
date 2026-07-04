@@ -9,8 +9,13 @@ import { SalesModule } from './sales/sales.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [AuthModule, UsersModule, ProductsModule, CustomersModule, SalesModule, PrismaModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    AuthModule,
+    UsersModule,
+    ProductsModule,
+    CustomersModule,
+    SalesModule,   
+    PrismaModule,
+  ],
 })
 export class AppModule {}
