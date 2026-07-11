@@ -25,9 +25,11 @@ export class CustomersController {
   ) {}
 
   @Post()
-  create(@Body() dto: CreateCustomerDto) {
-    return this.customersService.create(dto);
-  }
+create(@Body() dto: CreateCustomerDto){
+
+  return this.customersService.create(dto);
+
+}
 
   @Get()
   findAll() {

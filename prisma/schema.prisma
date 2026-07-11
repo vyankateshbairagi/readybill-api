@@ -8,14 +8,21 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  mobile    String   @unique
-  password  String
-  role      UserRole @default(CASHIER)
+  id String @id @default(uuid())
+
+  name   String
+  mobile String @unique
+
+  password String
+
+  role UserRole @default(CASHIER)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  sales     Sale[]
+
+  sales Sale[]
+
+  payments Payment[]
 }
 
 model Product {
@@ -33,11 +40,16 @@ model Product {
 model Customer {
   id String @id @default(uuid())
 
-  name    String
-  mobile  String
-  balance Float  @default(0)
+  name String
+  mobile String
+
+  openingBalance Float @default(0)
+
+  balance Float @default(0)
 
   sales Sale[]
+
+  payments Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -75,6 +87,19 @@ model SaleItem {
 
   sale    Sale    @relation(fields: [saleId], references: [id])
   product Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  customerId  String
+  userId      String
+  amount      Float
+  paymentMode String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
 }
 
 enum UserRole {

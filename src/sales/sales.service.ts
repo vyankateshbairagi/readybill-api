@@ -12,7 +12,6 @@ export class SalesService {
                 createdAt: 'desc',
             },
         });
-
         if (!lastSale) {
             return 'RB000001';
         }
@@ -21,6 +20,69 @@ export class SalesService {
         const nextNumber = lastNumber + 1;
 
         return `RB${nextNumber.toString().padStart(6, '0')}`;
+    }
+    async findAll() {
+        return this.prisma.sale.findMany({
+            orderBy: {
+                createdAt: 'desc',
+            },
+            include: {
+                customer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        mobile: true,
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        items: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async findOne(id: string) {
+        const sale = await this.prisma.sale.findUnique({
+            where: {
+                id,
+            },
+            include: {
+                customer: true,
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        mobile: true,
+                    },
+                },
+                items: {
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                                category: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!sale) {
+            throw new BadRequestException('Sale not found');
+        }
+
+        return sale;
     }
 
     async create(dto: CreateSaleDto, userId: string) {
@@ -80,7 +142,7 @@ export class SalesService {
 
         const result = await this.prisma.$transaction(async (tx) => {
 
-            // 1. Create Sale
+            // Create Sale
             const sale = await tx.sale.create({
                 data: {
                     invoiceNo,
@@ -92,20 +154,37 @@ export class SalesService {
                 },
             });
 
-            // 2. Create Sale Items
-            for (const item of saleItems) {
-                await tx.saleItem.create({
-                    data: {
-                        saleId: sale.id,
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        price: item.price,
-                        total: item.total,
+            // Create Sale Items
+            await tx.saleItem.createMany({
+                data: saleItems.map(item => ({
+                    saleId: sale.id,
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: item.price,
+                    total: item.total,
+                })),
+            });
+            // Update Customer Balance
+
+            if (dto.customerId) {
+
+                await tx.customer.update({
+
+                    where: {
+                        id: dto.customerId,
                     },
+
+                    data: {
+                        balance: {
+                            increment: grandTotal,
+                        },
+                    },
+
                 });
+
             }
 
-            // 3. Reduce Product Stock
+            // Update Product Stock
             for (const item of saleItems) {
                 await tx.product.update({
                     where: {
@@ -118,8 +197,8 @@ export class SalesService {
                     },
                 });
             }
-            return sale;
 
+            return sale;
         });
         return {
             sale: result,
@@ -128,6 +207,71 @@ export class SalesService {
             discount,
             grandTotal,
             items: saleItems,
+        };
+    }
+    async remove(id: string) {
+
+        const sale = await this.prisma.sale.findUnique({
+            where: {
+                id,
+            },
+            include: {
+                items: true,
+            },
+        });
+
+        if (!sale) {
+            throw new BadRequestException('Sale not found');
+        }
+
+        await this.prisma.$transaction(async (tx) => {
+
+            // Restore Product Stock
+            for (const item of sale.items) {
+                await tx.product.update({
+                    where: {
+                        id: item.productId,
+                    },
+                    data: {
+                        stock: {
+                            increment: item.quantity,
+                        },
+                    },
+                });
+            }
+
+            // Restore Customer Balance
+            if (sale.customerId) {
+                await tx.customer.update({
+                    where: {
+                        id: sale.customerId,
+                    },
+                    data: {
+                        balance: {
+                            decrement: sale.total,
+                        },
+                    },
+                });
+            }
+
+            // Delete Sale Items
+            await tx.saleItem.deleteMany({
+                where: {
+                    saleId: sale.id,
+                },
+            });
+
+            // Delete Sale
+            await tx.sale.delete({
+                where: {
+                    id: sale.id,
+                },
+            });
+
+        });
+
+        return {
+            message: 'Sale cancelled successfully',
         };
     }
 }
