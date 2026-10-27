@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 @Injectable()
 export class CustomersService {
@@ -83,7 +84,7 @@ export class CustomersService {
 
   async update(
     id: string,
-    data: Partial<CreateCustomerDto>
+    data: UpdateCustomerDto
   ) {
 
 
