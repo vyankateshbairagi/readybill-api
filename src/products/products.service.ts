@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -49,8 +50,17 @@ export class ProductsService {
   async remove(id: string) {
     await this.findOne(id);
 
-    return this.prisma.product.delete({
-      where: { id },
-    });
+    try {
+      return await this.prisma.product.delete({
+        where: { id },
+      });
+    } catch (err: any) {
+      if (err.code === 'P2003') {
+        throw new BadRequestException(
+          'Cannot delete product because it has existing sale records. You can set stock to 0 instead.',
+        );
+      }
+      throw err;
+    }
   }
 }
